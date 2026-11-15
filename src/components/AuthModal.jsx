@@ -91,7 +91,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 <User size={15} className="absolute left-3 text-neutral-500" />
                 <input
                   type="text"
-                  placeholder="Ex: Alexandre Dupont"
+                  placeholder="Ex: Awa sawadogo"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
