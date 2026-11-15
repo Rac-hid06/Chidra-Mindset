@@ -1,0 +1,42 @@
+# ============================================================
+# CHIDRA MINDSET — Configuration de déploiement Render.com
+# ============================================================
+# Ce fichier configure un service Web Node.js avec disque persistant
+# pour SQLite. Alternative à Vercel (incompatible avec SQLite).
+#
+# Documentation : https://render.com/docs/yaml-spec
+# ============================================================
+
+services:
+  - type: web
+    name: chidra-mindset
+    env: node
+    region: frankfurt    # ou oregon, singapore selon votre audience
+
+    # Commandes
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+
+    # Variables d'environnement (à configurer dans le dashboard Render)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000           # Port assigné par Render
+      - key: DATABASE_PATH
+        value: /data/chidra.sqlite
+      - key: ALLOWED_ORIGIN
+        sync: false            # À renseigner manuellement dans Render Dashboard
+      - key: ADMIN_EMAIL
+        sync: false            # À renseigner manuellement dans Render Dashboard
+      - key: ADMIN_PASSWORD
+        sync: false            # À renseigner manuellement dans Render Dashboard
+
+    # ✅ Disque persistant pour SQLite (essentiel : sans ça, les données sont perdues au redémarrage)
+    disk:
+      name: chidra-db
+      mountPath: /data
+      sizeGB: 1               # 1 Go suffit pour SQLite
+
+    # Plan
+    plan: free                # Ou 'starter' pour des performances supérieures
