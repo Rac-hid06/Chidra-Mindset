@@ -6,13 +6,20 @@ import fs from 'node:fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
 // ✅ PHASE 5 — DATABASE_PATH configurable via variable d'environnement
-const dbPath = process.env.DATABASE_PATH || path.join(dataDir, 'chidra.sqlite');
+const defaultDir = path.join(__dirname, 'data');
+let dbPath = process.env.DATABASE_PATH || path.join(defaultDir, 'chidra.sqlite');
+
+// Crée le dossier de la base ; si impossible (ex. /data sans disque), bascule sur /tmp
+try {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  fs.accessSync(path.dirname(dbPath), fs.constants.W_OK);
+} catch {
+  console.warn(`[DB] Dossier inaccessible pour ${dbPath}, bascule sur /tmp/chidra.sqlite`);
+  dbPath = '/tmp/chidra.sqlite';
+}
+console.log(`[DB] Base SQLite : ${dbPath}`);
+
 export const db = new DatabaseSync(dbPath);
 
 // Active les clés étrangères et le mode WAL pour des performances optimales
