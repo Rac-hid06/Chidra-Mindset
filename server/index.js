@@ -1,74 +1,26 @@
-import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { initDatabase, cleanExpiredSessions } from './db.js';
-import { handleApiRequest } from './router.js';
+import http from 'node:http'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { initDatabase } from './db.js'
+import { handleApiRequest } from './router.js'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+const types = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.json': 'application/json', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
+}
 
-initDatabase();
+initDatabase()
 
-// ✅ PHASE 2 — Nettoyage des sessions expirées au démarrage + toutes les heures
-cleanExpiredSessions();
-setInterval(cleanExpiredSessions, 60 * 60 * 1000); // 1 heure
-
-const PORT = process.env.PORT || 5000;
-const distDir = path.join(__dirname, '../dist');
-
-const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
-};
-
-const server = http.createServer(async (req, res) => {
-  // 1. Routes API
-  if (req.url.startsWith('/api')) {
-    return handleApiRequest(req, res);
+http.createServer((req, res) => {
+  if (req.url.startsWith('/api')) return handleApiRequest(req, res)
+  const urlPath = decodeURIComponent(req.url.split('?')[0])
+  let file = path.join(dist, urlPath)
+  if (!file.startsWith(dist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    file = path.join(dist, 'index.html')
   }
-
-  // 2. Fichiers Statiques (Production)
-  if (fs.existsSync(distDir)) {
-    let filePath = path.join(distDir, req.url.split('?')[0]);
-
-    // ✅ PROTECTION PATH TRAVERSAL (CWE-22)
-    // Résoudre le chemin absolu et vérifier qu'il reste dans dist/
-    const resolvedPath = path.resolve(filePath);
-    const resolvedDistDir = path.resolve(distDir);
-    if (!resolvedPath.startsWith(resolvedDistDir + path.sep) && resolvedPath !== resolvedDistDir) {
-      res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end('403 Interdit');
-    }
-
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(distDir, 'index.html');
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    try {
-      const content = fs.readFileSync(filePath);
-      res.writeHead(200, { 'Content-Type': contentType });
-      return res.end(content);
-    } catch (err) {
-      res.writeHead(500);
-      return res.end('Erreur serveur');
-    }
-  }
-
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end('<h1>Serveur API Chidra Mindset actif</h1><p>Lancez Vite pour le frontend en mode développement.</p>');
-});
-
-server.listen(PORT, () => {
-  console.log(`\n🚀 Serveur Chidra Mindset actif sur http://localhost:${PORT}`);
-  console.log(`📡 API Backend disponible sur http://localhost:${PORT}/api\n`);
-});
+  res.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream')
+  fs.createReadStream(file).pipe(res)
+}).listen(process.env.PORT || 10000, '0.0.0.0')
