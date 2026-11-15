@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --bg-main: #09090b;
   --bg-card: #121216;
@@ -9,12 +11,6 @@
   --border-gold: rgba(245, 158, 11, 0.35);
   --text-main: #f4f4f5;
   --text-muted: #a1a1aa;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
 }
 
 body {
